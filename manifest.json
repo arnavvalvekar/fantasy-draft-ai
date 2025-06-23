@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "DraftBuilder AI",
+  "version": "1.0",
+  "description": "Fantasy Football Draft Assistant with Live Reactions",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+} 
