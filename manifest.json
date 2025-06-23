@@ -10,7 +10,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "https://fantasy.espn.com/football/draft*",
+        "https://sleeper.com/draft/*"
+      ],
       "js": ["content.js"]
     }
   ]
