@@ -5,7 +5,7 @@ console.log("DraftBuilder AI content script loaded!");
 if (!document.getElementById('draftbuilder-ai-banner')) {
   const banner = document.createElement('div');
   banner.id = 'draftbuilder-ai-banner';
-  banner.textContent = 'DraftBuilder AI is active on this draft page!';
+  banner.textContent = 'BIG BLACK BALLS! BIG BLACK BALLS! BIG BLACK BALLS!';
   banner.style.position = 'fixed';
   banner.style.top = '0';
   banner.style.left = '0';
@@ -16,4 +16,34 @@ if (!document.getElementById('draftbuilder-ai-banner')) {
   banner.style.padding = '10px';
   banner.style.zIndex = '9999';
   document.body.appendChild(banner);
-} 
+}
+
+function getDraftedPlayers() {
+  // Find all elements that represent a draft pick row
+  // You may need to adjust the parent selector if these are grouped in a container
+  const pickElements = document.querySelectorAll('.pick');
+
+  const draftedPlayers = Array.from(pickElements).map(pickEl => {
+    // The parent of .pick should contain the other info
+    const parent = pickEl.parentElement;
+
+    const playerName = parent.querySelector('.player-name')?.textContent.trim() || '';
+    const position = parent.querySelector('.position')?.textContent.trim() || '';
+    const pickNumber = pickEl.textContent.trim();
+
+    return {
+      pickNumber,
+      playerName,
+      position
+    };
+  });
+
+  return draftedPlayers;
+}
+
+// Example: Log drafted players every 2 seconds
+setInterval(() => {
+  const draftedPlayers = getDraftedPlayers();
+  console.log('Drafted players:', draftedPlayers);
+  // TODO: Send this data to your popup or background script
+}, 2000); 
