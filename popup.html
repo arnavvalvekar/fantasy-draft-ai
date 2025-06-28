@@ -2,11 +2,26 @@
 <html>
   <head>
     <title>DraftBuilder AI</title>
-    <script src="popup.js"></script>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 16px; width: 300px; }
+      h2 { margin-top: 0; }
+      .player-list { margin: 0; padding: 0; list-style: none; }
+      .player-list li { margin-bottom: 8px; }
+      .suggestion { background: #e0ffe0; padding: 8px; border-radius: 4px; margin-bottom: 16px; }
+      .pick-number { font-weight: bold; margin-right: 8px; }
+      .player-name { font-weight: bold; }
+      .position { color: #666; margin-left: 8px; }
+    </style>
   </head>
   <body>
-    <h1>DraftBuilder AI</h1>
-    <button id="testBtn">Test</button>
-    <div id="output"></div>
+    <h2>DraftBuilder AI</h2>
+    <div class="suggestion" id="suggestion">
+      Next Pick: <span id="next-pick">Loading...</span>
+    </div>
+    <h3>Drafted Players</h3>
+    <ul class="player-list" id="drafted-players">
+      <li>Loading...</li>
+    </ul>
+    <script src="popup.js"></script>
   </body>
 </html> 

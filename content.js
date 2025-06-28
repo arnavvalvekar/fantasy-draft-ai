@@ -44,6 +44,7 @@ function getDraftedPlayers() {
 // Example: Log drafted players every 2 seconds
 setInterval(() => {
   const draftedPlayers = getDraftedPlayers();
-  console.log('Drafted players:', draftedPlayers);
-  // TODO: Send this data to your popup or background script
+  chrome.storage.local.set({ draftedPlayers }, () => {
+    console.log('Saved drafted players to storage:', draftedPlayers);
+  });
 }, 2000); 

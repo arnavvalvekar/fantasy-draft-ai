@@ -3,7 +3,7 @@
   "name": "DraftBuilder AI",
   "version": "1.0",
   "description": "Fantasy Football Draft Assistant with Live Reactions",
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
