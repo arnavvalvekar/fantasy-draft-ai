@@ -1,20 +1,37 @@
 {
   "manifest_version": 3,
-  "name": "DraftBuilder AI",
-  "version": "1.0",
-  "description": "Fantasy Football Draft Assistant with Live Reactions",
-  "permissions": ["activeTab", "scripting", "storage"],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": "icon.png"
+  "name": "Fantasy Football Draft Helper",
+  "version": "1.0.0",
+  "description": "A fantasy football draft selection helper with real-time recommendations from Sleeper",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "webNavigation",
+    "http://localhost:8000/*"
+  ],
+  "host_permissions": [
+    "https://sleeper.com/*",
+    "https://api.sleeper.com/*",
+    "http://localhost:8000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://fantasy.espn.com/football/draft*",
-        "https://sleeper.com/draft/*"
-      ],
-      "js": ["content.js"]
+      "matches": ["https://sleeper.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Fantasy Football Draft Helper"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
 } 

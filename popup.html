@@ -1,27 +1,182 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>DraftBuilder AI</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 16px; width: 300px; }
-      h2 { margin-top: 0; }
-      .player-list { margin: 0; padding: 0; list-style: none; }
-      .player-list li { margin-bottom: 8px; }
-      .suggestion { background: #e0ffe0; padding: 8px; border-radius: 4px; margin-bottom: 16px; }
-      .pick-number { font-weight: bold; margin-right: 8px; }
-      .player-name { font-weight: bold; }
-      .position { color: #666; margin-left: 8px; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football Draft Helper</title>
+    <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <h2>DraftBuilder AI</h2>
-    <div class="suggestion" id="suggestion">
-      Next Pick: <span id="next-pick">Loading...</span>
+    <div class="container">
+        <header>
+            <h1>🏈 Draft Helper</h1>
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="recommendations">Recommendations</button>
+                <button class="tab-btn" data-tab="positions">Positions</button>
+                <button class="tab-btn" data-tab="chat">AI Chat</button>
+                <button class="tab-btn" data-tab="debug">Draft Board</button>
+            </div>
+            <div class="header-actions">
+                <button id="sync-data" class="sync-btn" title="Sync player data from APIs">
+                    🔄 Sync Data
+                </button>
+                <button id="refresh-data" class="refresh-btn" title="Refresh current data">
+                    🔄 Refresh
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Recommendations Tab -->
+            <div class="tab-content active" id="recommendations">
+                <div class="section">
+                    <h2>Next Pick Recommendations</h2>
+                    <div class="loading" id="recommendation-loading">
+                        <div class="spinner"></div>
+                        <p>Analyzing available players...</p>
+                    </div>
+                    <div class="recommendations-container" id="recommendations-container" style="display: none;">
+                        <!-- Main Recommendation -->
+                        <div class="recommendation-card main-recommendation" id="main-recommendation">
+                            <div class="click-indicator">Click to select</div>
+                            <div class="player-info">
+                                <h3 id="main-player-name">Player Name</h3>
+                                <p id="main-player-position">Position</p>
+                                <p id="main-player-team">Team</p>
+                            </div>
+                            <div class="stats">
+                                <div class="stat">
+                                    <span class="label">Projected Points:</span>
+                                    <span id="main-projected-points">0</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">Value Score:</span>
+                                    <span id="main-value-score">0</span>
+                                </div>
+                            </div>
+                            <div class="reasoning">
+                                <h4>Why This Pick:</h4>
+                                <p id="main-pick-reasoning">Reasoning will appear here...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Alternative Recommendations -->
+                        <div class="alternative-recommendations">
+                            <h3>Alternative Picks</h3>
+                            <div class="alt-recommendations-grid">
+                                <!-- Alternative 1 -->
+                                <div class="recommendation-card alt-recommendation" id="alt-recommendation-1" data-index="1">
+                                    <div class="click-indicator">Click to select</div>
+                                    <div class="player-info">
+                                        <h4 id="alt1-player-name">Player Name</h4>
+                                        <p id="alt1-player-position">Position</p>
+                                        <p id="alt1-player-team">Team</p>
+                                    </div>
+                                    <div class="stats">
+                                        <div class="stat">
+                                            <span class="label">Value Score:</span>
+                                            <span id="alt1-value-score">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="reasoning">
+                                        <p id="alt1-pick-reasoning">Reasoning...</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Alternative 2 -->
+                                <div class="recommendation-card alt-recommendation" id="alt-recommendation-2" data-index="2">
+                                    <div class="click-indicator">Click to select</div>
+                                    <div class="player-info">
+                                        <h4 id="alt2-player-name">Player Name</h4>
+                                        <p id="alt2-player-position">Position</p>
+                                        <p id="alt2-player-team">Team</p>
+                                    </div>
+                                    <div class="stats">
+                                        <div class="stat">
+                                            <span class="label">Value Score:</span>
+                                            <span id="alt2-value-score">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="reasoning">
+                                        <p id="alt2-pick-reasoning">Reasoning...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Positions Tab -->
+            <div class="tab-content" id="positions">
+                <div class="section">
+                    <h2>Team Position Analysis</h2>
+                    <div class="loading" id="position-loading">
+                        <div class="spinner"></div>
+                        <p>Analyzing your team...</p>
+                    </div>
+                    <div class="position-analysis" id="position-analysis" style="display: none;">
+                        <div class="team-summary">
+                            <h3>Your Current Team</h3>
+                            <div class="position-counts" id="position-counts">
+                                <!-- Position counts will be populated here -->
+                            </div>
+                        </div>
+                        <div class="position-recommendations">
+                            <h3>Priority Positions</h3>
+                            <div class="priority-list" id="priority-list">
+                                <!-- Priority positions will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Chat Tab -->
+            <div class="tab-content" id="chat">
+                <div class="section">
+                    <h2>AI Draft Assistant</h2>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chat-messages">
+                            <div class="message ai-message">
+                                <div class="message-content">Hello! I'm your fantasy football draft assistant. Ask me anything about players, strategies, or your team composition!</div>
+                            </div>
+                        </div>
+                        <div class="chat-input-container">
+                            <input type="text" id="chat-input" placeholder="Ask about players, strategies, or team advice..." />
+                            <button id="send-message">Send</button>
+                            <button id="clear-chat" class="clear-chat-btn">🗑️ Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug/Draft Board Tab -->
+            <div class="tab-content" id="debug">
+                <div class="section">
+                    <h2>Draft Board (Debug)</h2>
+                    <div id="draft-board-debug">
+                        <p>Loading draft board data...</p>
+                    </div>
+                    
+                    <div class="cache-stats">
+                        <h3>Cache Statistics</h3>
+                        <div id="cache-stats">
+                            <p>Loading cache stats...</p>
+                        </div>
+                        <button id="clear-cache-btn" class="clear-cache-btn">🗑️ Clear Cache</button>
+                        <button id="debug-cache-btn" class="debug-cache-btn">🔍 Debug Cache</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <button id="refresh-data" class="refresh-btn">🔄 Refresh Data</button>
+            <div class="status" id="status">Ready</div>
+        </footer>
     </div>
-    <h3>Drafted Players</h3>
-    <ul class="player-list" id="drafted-players">
-      <li>Loading...</li>
-    </ul>
+
     <script src="popup.js"></script>
   </body>
 </html> 

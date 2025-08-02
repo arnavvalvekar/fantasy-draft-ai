@@ -1,0 +1,701 @@
+/* Fantasy Football Draft Helper Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    width: 400px;
+    min-height: 500px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Header */
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px;
+}
+
+header h1 {
+    font-size: 20px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+/* Header actions */
+.header-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.sync-btn, .refresh-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.sync-btn:hover, .refresh-btn:hover {
+    background: #5a6fd8;
+    transform: translateY(-1px);
+}
+
+.sync-btn:active, .refresh-btn:active {
+    transform: translateY(0);
+}
+
+.sync-btn.loading, .refresh-btn.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Tab Navigation */
+.tab-navigation {
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.tab-btn.active {
+    background: white;
+    color: #667eea;
+    font-weight: 600;
+}
+
+/* Main Content */
+main {
+    padding: 12px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Section Styling */
+.section {
+    margin-bottom: 12px;
+}
+
+.section h2 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: #333;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 4px;
+}
+
+/* Loading States */
+.loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 12px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Recommendation Card */
+.recommendations-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.recommendation-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    border-left: 4px solid #667eea;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.recommendation-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(102, 126, 234, 0.02) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.recommendation-card:hover::before {
+    opacity: 1;
+}
+
+.recommendation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.recommendation-card:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.main-recommendation {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+    border-left: 4px solid #667eea;
+    transform: scale(1.02);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+}
+
+.alt-recommendation {
+    background: #f8f9fa;
+    border-left: 4px solid #ccc;
+    transform: scale(0.95);
+    opacity: 0.8;
+}
+
+.alt-recommendation:hover {
+    border-left-color: #667eea;
+    opacity: 1;
+    transform: scale(0.98);
+}
+
+.alt-recommendation.selected {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e8f5e8 100%);
+    border-left: 4px solid #28a745;
+    transform: scale(1.02);
+    opacity: 1;
+    box-shadow: 0 4px 16px rgba(40, 167, 69, 0.15);
+}
+
+.main-recommendation.demoted {
+    background: #f8f9fa;
+    border-left: 4px solid #ccc;
+    transform: scale(0.95);
+    opacity: 0.8;
+    box-shadow: none;
+}
+
+/* Click indicator */
+.click-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.recommendation-card:hover .click-indicator {
+    opacity: 1;
+}
+
+/* Alternative Recommendations */
+.alternative-recommendations {
+    margin-top: 8px;
+}
+
+.alternative-recommendations h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: #333;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 4px;
+}
+
+.alt-recommendations-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.alt-recommendation .player-info h4 {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.alt-recommendation .stats {
+    margin: 12px 0;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.alt-recommendation .stat {
+    padding: 6px 10px;
+}
+
+.alt-recommendation .reasoning {
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
+.alt-recommendation .reasoning p {
+    font-size: 12px;
+}
+
+/* Legacy styles for other components */
+.player-info h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.player-info h4 {
+    font-size: 16px;
+    margin-bottom: 6px;
+    color: #333;
+}
+
+.player-info p {
+    color: #666;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.stats {
+    margin: 16px 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.stat {
+    background: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.stat .label {
+    font-size: 12px;
+    color: #666;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.stat span:last-child {
+    font-weight: 600;
+    color: #333;
+}
+
+.reasoning {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.reasoning h4 {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.reasoning p {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #666;
+}
+
+
+
+/* Position Analysis */
+.position-counts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.position-count {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+}
+
+.position-count .position {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.position-count .count {
+    font-size: 18px;
+    color: #667eea;
+    font-weight: bold;
+}
+
+.priority-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.priority-item {
+    padding: 12px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.priority-item.high {
+    background: #fee;
+    border-left: 4px solid #dc3545;
+}
+
+.priority-item.medium {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.priority-item.low {
+    background: #d1ecf1;
+    border-left: 4px solid #17a2b8;
+}
+
+.priority-item .position {
+    font-weight: 600;
+    color: #333;
+}
+
+.priority-item .reason {
+    font-size: 13px;
+    color: #666;
+}
+
+/* Chat */
+.chat-container {
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    max-height: 320px;
+}
+
+.message {
+    margin-bottom: 8px;
+    margin-top: 0;
+    padding: 0;
+}
+
+.message-content {
+    padding: 0;
+    border-radius: 12px;
+    max-width: 80%;
+    margin: 0;
+}
+
+.user-message .message-content {
+    background: #667eea;
+    color: white;
+    margin-left: auto;
+    padding: 8px 12px;
+    border-radius: 12px;
+}
+
+.ai-message .message-content {
+    background: white;
+    border: 1px solid #e0e0e0;
+    color: #333;
+    white-space: pre-line;
+    word-wrap: break-word;
+    line-height: 1.4;
+    padding: 8px 12px;
+    margin: 0;
+    text-align: left;
+}
+
+.ai-message .message-content strong {
+    font-weight: 600;
+    color: #333;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+#chat-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+#send-message {
+    padding: 8px 16px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#send-message:hover {
+    background: #5a6fd8;
+}
+
+.clear-chat-btn {
+    padding: 8px 12px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.clear-chat-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+.clear-chat-btn:active {
+    transform: translateY(0);
+}
+
+/* Debug */
+.debug-teams {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.debug-team {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.debug-team h4 {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 4px;
+}
+
+.debug-picks {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.debug-pick {
+    display: flex;
+    gap: 8px;
+    padding: 4px 8px;
+    background: white;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.debug-pick.empty {
+    opacity: 0.5;
+}
+
+.debug-pick .pick-number {
+    font-weight: 600;
+    color: #667eea;
+    min-width: 20px;
+}
+
+.debug-pick .player-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.debug-pick .position {
+    color: #666;
+    min-width: 30px;
+}
+
+.debug-pick .nfl-team {
+    color: #999;
+    min-width: 30px;
+}
+
+/* Footer */
+footer {
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.refresh-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.refresh-btn:hover {
+    background: #5a6fd8;
+}
+
+.status {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Cache Stats */
+.cache-stats {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.cache-stats h3 {
+    margin-bottom: 12px;
+    color: #495057;
+    font-size: 16px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-item .label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.stat-item .value {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.clear-cache-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.3s ease;
+}
+
+.clear-cache-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+.clear-cache-btn:active {
+    transform: translateY(0);
+}
+
+.debug-cache-btn {
+    background: #17a2b8;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 8px;
+    margin-left: 8px;
+    transition: all 0.3s ease;
+}
+
+.debug-cache-btn:hover {
+    background: #138496;
+    transform: translateY(-1px);
+}
+
+.debug-cache-btn:active {
+    transform: translateY(0);
+} 
