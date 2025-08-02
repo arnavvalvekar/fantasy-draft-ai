@@ -1,279 +1,166 @@
-# Fantasy Football Draft Assistant Backend
+# Fantasy Football Draft Assistant
 
-A FastAPI-powered backend for intelligent fantasy football draft recommendations using RAG (Retrieval-Augmented Generation) with LLMs.
+An AI-powered fantasy football draft assistant that provides real-time player recommendations, draft strategy advice, and intelligent chat assistance during your Sleeper.com fantasy football drafts.
 
-## 🚀 Features
+## Features
 
-- **RAG-powered Recommendations**: AI-driven player recommendations using LangChain and OpenAI
-- **Real-time Chat**: Interactive chat system for draft strategy questions
-- **Player Analysis**: Detailed player analysis with strengths, weaknesses, and risk assessment
-- **Positional Scarcity Analysis**: Smart analysis of position availability
-- **Value Opportunity Detection**: Find undervalued players based on ADP vs rank
-- **Vector Database**: ChromaDB for efficient player data storage and retrieval
-- **RESTful API**: Complete API for Chrome extension integration
+### Core Functionality
+- **Real-time Player Recommendations**: Get intelligent player suggestions based on your current draft position, team needs, and available players
+- **AI Chat Assistant**: Ask questions about players, strategies, or team composition and get instant responses
+- **Position Analysis**: Track your team's positional needs and get priority recommendations
+- **Value Analysis**: Identify players with good value relative to their ADP (Average Draft Position)
+- **Risk Assessment**: Get insights on players with injury concerns or other risk factors
 
-## 🏗️ Architecture
+### Data Integration
+- **Sleeper API Integration**: Real-time player data from Sleeper's fantasy football platform
+- **Player Enrichment**: Enhanced player statistics with projected points, value scores, and rankings
+- **Caching System**: Intelligent caching for faster responses and reduced API calls
+- **Mock Data Support**: Fallback data for testing and development
 
+### Chrome Extension
+- **Seamless Integration**: Works directly within Sleeper.com draft pages
+- **Real-time Data Scraping**: Automatically extracts draft board and team information
+- **Interactive UI**: Click-to-select recommendations with visual feedback
+- **Multi-tab Interface**: Recommendations, position analysis, AI chat, and debug tools
+
+## Architecture
+
+### Backend (FastAPI)
 ```
-fantasy-football-backend/
-├── app/
-│   ├── main.py                 # FastAPI application
-│   ├── models/                 # Pydantic data models
-│   │   ├── player.py          # Player and recommendation models
-│   │   ├── chat.py            # Chat message models
-│   │   └── draft.py           # Draft context models
-│   ├── services/              # Business logic
-│   │   ├── rag_service.py     # RAG pipeline with LLM
-│   │   └── player_service.py  # Player data management
-│   └── api/                   # API routes
-│       ├── chat.py            # Chat endpoints
-│       ├── recommendations.py # Recommendation endpoints
-│       └── players.py         # Player management endpoints
-├── data/                      # Data storage
-├── requirements.txt           # Python dependencies
-└── README.md                 # This file
+app/
+├── main.py                 # FastAPI application entry point
+├── api/                    # API endpoints
+│   ├── chat.py            # Chat functionality
+│   ├── players.py         # Player management
+│   └── recommendations.py # Recommendation engine
+├── models/                 # Data models
+│   ├── chat.py           # Chat models
+│   ├── draft.py          # Draft state models
+│   └── player.py         # Player data models
+└── services/              # Business logic
+    ├── api_service.py     # External API integration
+    ├── player_service.py  # Player data management
+    └── rag_service.py     # RAG (Retrieval-Augmented Generation)
 ```
 
-## 🛠️ Setup
+### Frontend (Chrome Extension)
+```
+├── manifest.json          # Extension configuration
+├── popup.html            # Main extension UI
+├── popup.js              # Extension logic
+├── content.js            # Page scraping script
+├── background.js         # Background service worker
+├── styles.css            # UI styling
+└── icons/               # Extension icons
+```
+
+## Quick Start
 
 ### Prerequisites
-
 - Python 3.8+
-- Chrome extension (for frontend)
-- Optional: Ollama (for local LLM) or Hugging Face API token (for cloud LLM)
+- Node.js (for development)
+- Chrome browser
+- Sleeper.com account
 
-### Installation
+### Backend Setup
 
-1. **Clone and navigate to the backend directory:**
+1. **Clone the repository**
    ```bash
-   cd fantasy-football-backend
+   git clone <repository-url>
+   cd fantasy-football-draft
    ```
 
-2. **Create virtual environment:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
+2. **Install Python dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Set up environment variables (optional):**
-   Create a `.env` file in the root directory:
-   ```env
-   # Optional: Hugging Face API token (free tier: 30k requests/month)
-   HUGGINGFACE_API_TOKEN=your_huggingface_token_here
-   
-   # Server configuration
-   HOST=0.0.0.0
-   PORT=8000
-   DEBUG=True
+3. **Set up environment variables**
+   ```bash
+   # Create .env file
+   echo "GROQ_API_KEY=your_groq_api_key_here" > .env
+   echo "HOST=0.0.0.0" >> .env
+   echo "PORT=8000" >> .env
+   echo "DEBUG=True" >> .env
    ```
-   
-   **LLM Options:**
-   - **Ollama (Recommended)**: Install from https://ollama.ai and run `ollama pull llama2`
-   - **Hugging Face API**: Get free token from https://huggingface.co/settings/tokens
-   - **Rule-based**: Works without any LLM (fallback mode)
 
-5. **Run the server:**
+4. **Start the FastAPI server**
    ```bash
    python -m app.main
    ```
 
-The API will be available at `http://localhost:8000`
+   The API will be available at `http://localhost:8000`
 
-## 📚 API Documentation
+### Chrome Extension Setup
 
-### Base URL
-```
-http://localhost:8000
-```
+1. **Load the extension in Chrome**
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the project directory
 
-### Health Check
-```bash
-GET /
-GET /health
-```
+2. **Navigate to Sleeper.com**
+   - Go to `https://sleeper.com`
+   - Start or join a draft
+   - Click the extension icon to open the assistant
+
+## API Endpoints
 
 ### Chat Endpoints
-
-#### Chat with RAG
-```bash
-POST /api/chat
-Content-Type: application/json
-
-{
-  "message": "Who should I draft in round 3?",
-  "draft_context": {
-    "current_round": 3,
-    "current_pick": 25,
-    "total_teams": 12
-  },
-  "user_team": {
-    "players": [...],
-    "position_counts": {"RB": 2, "WR": 1}
-  }
-}
-```
-
-#### Chat with Session
-```bash
-POST /api/chat/session/{session_id}
-```
-
-### Recommendation Endpoints
-
-#### Get Player Recommendations
-```bash
-POST /api/recommendations
-Content-Type: application/json
-
-{
-  "available_players": [...],
-  "user_team": {...},
-  "draft_context": {...},
-  "preferences": {...}
-}
-```
-
-#### Get Position Recommendations
-```bash
-GET /api/recommendations/position/{position}?limit=10
-```
-
-#### Get Value Opportunities
-```bash
-GET /api/recommendations/value
-```
-
-#### Get Positional Scarcity
-```bash
-GET /api/recommendations/scarcity
-```
+- `POST /api/chat` - Get AI chat responses
+- `POST /api/chat/session/{session_id}` - Session-based chat
+- `GET /api/chat/sessions` - List chat sessions
+- `DELETE /api/chat/session/{session_id}` - Delete session
+- `POST /api/chat/clear` - Clear chat cache
 
 ### Player Endpoints
+- `GET /api/players` - List all players
+- `GET /api/players/{player_id}` - Get specific player
+- `GET /api/players/search/{name}` - Search players by name
+- `GET /api/players/{player_id}/analysis` - Get player analysis
+- `POST /api/players/sync/sleeper` - Sync with Sleeper API
+- `POST /api/players/enrich` - Enrich player data
 
-#### Get All Players
-```bash
-GET /api/players?position=RB&limit=20
-```
+### Recommendation Endpoints
+- `POST /api/recommendations` - Get player recommendations
+- `GET /api/recommendations/position/{position}` - Position-specific recommendations
+- `GET /api/recommendations/value` - Value-based recommendations
+- `GET /api/recommendations/scarcity` - Positional scarcity analysis
+- `GET /api/recommendations/risk` - Risk assessment
 
-#### Get Player by ID
-```bash
-GET /api/players/{player_id}
-```
+## AI Features
 
-#### Get Player Analysis
-```bash
-GET /api/players/{player_id}/analysis
-```
+### RAG Service
+The application uses a Retrieval-Augmented Generation (RAG) system with two modes:
 
-#### Search Players
-```bash
-GET /api/players/search/{name}?limit=10
-```
+1. **Groq LLM Mode** (Preferred)
+   - Uses Groq's fast LLM API
+   - Requires `GROQ_API_KEY` environment variable
+   - Provides intelligent, context-aware responses
 
-#### Create Player
-```bash
-POST /api/players
-Content-Type: application/json
+2. **Rule-based Fallback**
+   - Works without API keys
+   - Provides basic recommendations based on player rankings
+   - Ensures functionality even without external AI services
 
-{
-  "id": "player_1",
-  "name": "Christian McCaffrey",
-  "position": "RB",
-  "team": "SF",
-  "rank": 1,
-  "adp": 1.5,
-  "projected_points": 250.0
-}
-```
+### Chat Capabilities
+- **Draft Strategy Questions**: "What's the best strategy for round 3?"
+- **Player Analysis**: "Should I draft Christian McCaffrey?"
+- **Positional Advice**: "Do I need another RB?"
+- **Value Questions**: "Who's the best value pick right now?"
 
-## 🔧 Integration with Chrome Extension
-
-### Update your extension's popup.js:
-
-```javascript
-// Replace simple recommendations with API calls
-async function loadRecommendations() {
-    try {
-        const response = await fetch('http://localhost:8000/api/recommendations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                available_players: draftData.availablePlayers,
-                user_team: userTeamData,
-                draft_context: {
-                    current_round: draftData.draftRound,
-                    current_pick: draftData.currentPick,
-                    total_teams: 12
-                }
-            })
-        });
-        
-        const recommendations = await response.json();
-        displayRecommendations(recommendations);
-    } catch (error) {
-        console.error('Error loading recommendations:', error);
-        // Fallback to simple recommendations
-    }
-}
-
-// Replace simple chat with API calls
-async function sendChatMessage() {
-    const message = document.getElementById('chat-input').value;
-    
-    try {
-        const response = await fetch('http://localhost:8000/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: message,
-                draft_context: currentDraftData,
-                user_team: userTeamData
-            })
-        });
-        
-        const chatResponse = await response.json();
-        displayChatResponse(chatResponse.response);
-    } catch (error) {
-        console.error('Error sending chat message:', error);
-    }
-}
-```
-
-## 🧠 RAG Pipeline
-
-The RAG (Retrieval-Augmented Generation) system works as follows:
-
-1. **Data Ingestion**: Player data is stored with embeddings using SentenceTransformers
-2. **Query Processing**: User questions are converted to embeddings
-3. **Retrieval**: Relevant player data is retrieved using similarity search
-4. **Generation**: Free LLM generates responses using retrieved context
-5. **Response**: Structured recommendations are returned to the user
-
-### Key Components:
-
-- **SentenceTransformers**: Free embeddings for semantic search
-- **Ollama**: Local LLM (Llama 2) for intelligent responses
-- **Hugging Face API**: Cloud LLM alternative (free tier)
-- **Rule-based Fallback**: Works without any LLM
-
-## 📊 Data Models
+## Data Models
 
 ### Player Model
 ```python
 class Player(BaseModel):
     id: str
     name: str
-    position: Position
+    position: Position  # QB, RB, WR, TE, K, DEF
     team: str
     rank: Optional[int]
-    adp: Optional[float]
+    adp: Optional[float]  # Average Draft Position
     projected_points: Optional[float]
-    last_year_points: Optional[float]
     value_score: Optional[float]
     injury_status: Optional[str]
     bye_week: Optional[int]
@@ -283,131 +170,98 @@ class Player(BaseModel):
 
 ### Recommendation Model
 ```python
-class Recommendation(BaseModel):
-    player: Player
-    reasoning: str
-    confidence_score: float
-    alternatives: List[Player]
-    risk_assessment: str
+class RecommendationResponse(BaseModel):
+    primary_recommendation: Recommendation
+    alternative_recommendations: List[Recommendation]
+    strategy_notes: str
+    next_picks_suggestion: List[str]
 ```
 
-## 🚀 Development
+## Configuration
 
-### Running in Development Mode
+### Environment Variables
+- `GROQ_API_KEY`: API key for Groq LLM service
+- `HOST`: Server host (default: 0.0.0.0)
+- `PORT`: Server port (default: 8000)
+- `DEBUG`: Enable debug mode (default: False)
+
+### Extension Settings
+The Chrome extension automatically:
+- Injects content scripts on Sleeper.com pages
+- Scrapes draft board data every 10 seconds
+- Caches responses for 5 minutes
+- Manages persistent storage for chat history
+
+## Development
+
+### Running Tests
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Run backend tests
+python -m pytest tests/
+
+# Run with coverage
+python -m pytest --cov=app tests/
 ```
 
-### API Documentation
-Visit `http://localhost:8000/docs` for interactive API documentation (Swagger UI)
+### Debugging
+- Backend logs are available in the console
+- Extension logs are available in Chrome DevTools
+- Content script logs appear in the page console
+- Background script logs appear in extension DevTools
 
-### Testing
-```bash
-# Run tests (when implemented)
-pytest
+### Data Sources
+- **Sleeper API**: Primary source for player data
+- **Mock Data**: Generated for testing and fallback
+- **Cache**: Redis-like in-memory caching system
 
-# Test specific endpoint
-curl -X GET "http://localhost:8000/health"
-```
+## Usage
 
-## 🔒 Security Considerations
+### During a Draft
+1. **Open the extension** while on a Sleeper draft page
+2. **View recommendations** in the main tab
+3. **Check position analysis** to see team needs
+4. **Ask the AI** for strategy advice
+5. **Click recommendations** to select players
 
-- Store API keys securely in environment variables
-- Implement rate limiting for production
-- Add authentication for user-specific data
-- Validate all input data
-- Use HTTPS in production
+### Extension Tabs
+- **Recommendations**: Primary and alternative picks
+- **Positions**: Team composition analysis
+- **AI Chat**: Interactive draft assistant
+- **Debug**: Draft board data and cache stats
 
-## 📈 Performance Optimization
+## Security
 
-- Cache frequently accessed player data
-- Use connection pooling for database
-- Implement pagination for large datasets
-- Optimize vector database queries
-- Use async operations where possible
+- CORS enabled for development
+- API key stored in environment variables
+- No sensitive data logged
+- Cache expiration prevents stale data
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests
+4. Add tests if applicable
 5. Submit a pull request
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🆘 Support
+## Acknowledgments
 
-For issues and questions:
-1. Check the API documentation at `/docs`
-2. Review the logs for error details
-3. Ensure all environment variables are set correctly
-4. Verify the Chrome extension is properly configured
+- **Sleeper.com** for providing the fantasy football platform
+- **Groq** for fast LLM inference
+- **FastAPI** for the robust backend framework
+- **Chrome Extensions API** for browser integration
+
+## Support
+
+For issues, questions, or contributions:
+- Open an issue on GitHub
+- Check the documentation
+- Review the code comments
 
 ---
 
-**Next Steps:**
-1. Set up your OpenAI API key
-2. Run the backend server
-3. Update your Chrome extension to use the new API endpoints
-4. Test the RAG-powered recommendations! 
-
-## Populating Player Data with Real Sleeper API Data
-
-The system now automatically enriches player data with real information from the Sleeper API. Here's how it works:
-
-### **Automatic Enrichment**
-- **Real-time**: When you request recommendations, the system automatically fetches real player data from Sleeper API
-- **Smart Caching**: Follows Sleeper's best practices by caching the full player list for 24 hours (5MB response)
-- **Efficient**: Only calls the API once per day, then searches cached data for specific players
-
-### **What Data We Get**
-From the Sleeper API, we fetch:
-- **Player Information**: Name, position, team, age, experience
-- **Rankings**: Search rank, ADP (when available)
-- **Status**: Active/inactive, injury status
-- **Generated Stats**: Realistic fantasy points based on rank and position
-
-### **Stats Generation**
-Since Sleeper API doesn't provide fantasy football stats, we generate realistic ones based on:
-- **Player Rank**: Higher rank = better projected points
-- **Position**: Different stat ranges for QB, RB, WR, TE, K, DEF
-- **Tier System**: 
-  - Top tier (rank 1-12): Elite players
-  - Mid tier (rank 13-48): Solid starters
-  - Low tier (rank 49+): Bench/depth players
-
-### **Value Score Calculation**
-- **ADP vs Rank**: If ADP is higher than rank = good value
-- **Rank-based**: If no ADP, uses rank to determine value
-- **Rounded**: All value scores rounded to 1 decimal place
-
-### **Manual Testing**
-You can test the Sleeper integration:
-
-```bash
-# Test getting a specific player
-python test_player_stats.py
-
-# Test the full debug suite
-python debug_sleeper.py
-
-# Test via API endpoints
-curl http://localhost:8000/api/players/sleeper/Christian%20McCaffrey
-```
-
-### **API Endpoints**
-- `GET /api/players/sleeper/{player_name}` - Get specific player data
-- `POST /api/players/enrich-sleeper` - Enrich multiple players
-- `POST /api/recommendations` - Automatic enrichment during recommendations
-
-### **Best Practices Followed**
-✅ **Sleeper API Guidelines**:
-- Call `/players/nfl` endpoint sparingly (once per day max)
-- Cache the 5MB response for 24 hours
-- Use player IDs for efficient lookups
-- Don't make repeated API calls for the same data
-
-The system now provides **real player data from Sleeper API** with **realistic fantasy football stats** that will show up in your recommendations instead of "N/A"! 
+**Happy Drafting!** 
