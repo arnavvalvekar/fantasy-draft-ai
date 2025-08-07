@@ -1,12 +1,18 @@
 import os
 import json
 import logging
-import requests
 from typing import List, Dict, Any, Optional
-from sentence_transformers import SentenceTransformer
-import numpy as np
-import groq
 from datetime import datetime, timedelta
+
+from langchain.chains import ConversationalRetrievalChain, RetrievalQA
+from langchain.memory import ConversationBufferMemory
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.llms import Groq
+from langchain.prompts import PromptTemplate
+from langchain.schema import Document
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from app.models.player import Player, Recommendation, RecommendationResponse
 from app.models.chat import ChatRequest, ChatResponse
@@ -14,7 +20,7 @@ from app.models.chat import ChatRequest, ChatResponse
 logger = logging.getLogger(__name__)
 
 class RAGService:
-    """RAG service for fantasy football recommendations and chat using Groq LLM"""
+    """RAG service for fantasy football recommendations and chat using LangChain and Groq LLM"""
 
     _instance = None
     _initialized = False
@@ -28,35 +34,56 @@ class RAGService:
         if self._initialized:
             return
         self._initialized = True
-        # Use free sentence transformers for embeddings
+        
+        # Initialize embeddings using HuggingFace through LangChain
         try:
-            self.embeddings = SentenceTransformer('all-MiniLM-L6-v2')
-            logger.info("Sentence transformers loaded successfully")
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name='all-MiniLM-L6-v2',
+                model_kwargs={'device': 'cpu'}
+            )
+            logger.info("HuggingFace embeddings loaded successfully")
         except Exception as e:
             logger.error(f"Error loading embeddings: {e}")
             self.embeddings = None
         
-        # Player data storage (for future use)
-        self.player_documents = []
-        self.player_embeddings = []
+        # Initialize vector store
+        self.vectorstore = FAISS.from_texts(
+            ["Initial empty store"], 
+            self.embeddings
+        )
         
         # LLM configuration
         self.llm_type = self._detect_llm()
         
-        # Initialize Groq client only if API key is available
-        self.groq_client = None
+        # Initialize LangChain components
+        self.llm = None
         if self.llm_type == "groq":
             try:
-                self.groq_client = groq.Groq(
+                callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
+                self.llm = Groq(
                     api_key=os.environ["GROQ_API_KEY"],
+                    model_name="llama3-8b-8192",
+                    callback_manager=callback_manager,
+                    temperature=0.7
                 )
-                logger.info("Groq client initialized successfully")
+                logger.info("Groq LLM initialized successfully")
             except KeyError:
                 logger.warning("GROQ_API_KEY not found, falling back to rule-based responses")
                 self.llm_type = "rule_based"
             except Exception as e:
-                logger.error(f"Error initializing Groq client: {e}")
+                logger.error(f"Error initializing Groq LLM: {e}")
                 self.llm_type = "rule_based"
+        
+        # Initialize conversation memory
+        self.memory = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True,
+            output_key="answer"
+        )
+        
+        # Initialize chains
+        self.qa_chain = self._create_qa_chain() if self.llm else None
+        self.chat_chain = self._create_chat_chain() if self.llm else None
         
         # Caching system
         self.recommendation_cache = {}
@@ -95,11 +122,65 @@ class RAGService:
         timestamp, _ = cache_entry
         return datetime.now() - timestamp < timedelta(seconds=self.cache_duration)
 
+    def _create_qa_chain(self):
+        """Create chain for player recommendations"""
+        if not self.llm:
+            return None
+            
+        recommendation_prompt = PromptTemplate(
+            template="""You are a fantasy football draft expert assistant with access to real player data.
+            Given the following draft context and available players, recommend the best next pick.
+            
+            Draft Context: {context}
+            Available Players: {players}
+            User Team: {team}
+            
+            Analyze the data and provide recommendations in this JSON format:
+            {
+                "primary_recommendation": {
+                    "player_name": "string",
+                    "reasoning": "string",
+                    "confidence_score": float
+                },
+                "alternatives": [
+                    {
+                        "player_name": "string",
+                        "reasoning": "string",
+                        "confidence_score": float
+                    }
+                ],
+                "strategy_notes": "string"
+            }
+            """,
+            input_variables=["context", "players", "team"]
+        )
+        
+        return RetrievalQA.from_chain_type(
+            llm=self.llm,
+            chain_type="stuff",
+            retriever=self.vectorstore.as_retriever(),
+            chain_type_kwargs={
+                "prompt": recommendation_prompt
+            }
+        )
+        
+    def _create_chat_chain(self):
+        """Create chain for interactive chat"""
+        if not self.llm:
+            return None
+            
+        return ConversationalRetrievalChain.from_llm(
+            llm=self.llm,
+            retriever=self.vectorstore.as_retriever(),
+            memory=self.memory,
+            return_source_documents=True
+        )
+        
     def get_recommendations(self, 
                           available_players: List[Player],
                           user_team: Dict[str, Any],
                           draft_context: Dict[str, Any]) -> RecommendationResponse:
-        """Get player recommendations using the selected LLM or rule-based fallback"""
+        """Get player recommendations using LangChain QA chain or rule-based fallback"""
         
         # Check cache first
         cache_key = self._get_cache_key(available_players, user_team, draft_context)
@@ -112,19 +193,30 @@ class RAGService:
                 logger.info("✅ Cache hit! Returning cached recommendation")
                 return cache_entry[1]
             else:
-                # Remove expired cache entry
                 logger.info("⏰ Cache entry expired, removing...")
                 del self.recommendation_cache[cache_key]
         else:
             logger.info("❌ Cache miss - generating new recommendation")
         
-        # Players are already enriched by the recommendations endpoint
-        # No need to enrich again here
-        logger.info(f"Using {len(available_players)} already enriched players")
+        # Update vector store with current player data
+        self._update_vector_store(available_players)
         
-        # Get recommendations
-        if self.llm_type == "groq":
-            response = self._groq_recommendations(available_players, user_team, draft_context)
+        # Get recommendations using LangChain if available
+        if self.qa_chain:
+            try:
+                # Format input for the chain
+                query = {
+                    "context": str(draft_context),
+                    "players": str([p.dict() for p in available_players[:10]]),
+                    "team": str(user_team)
+                }
+                
+                # Get recommendation from chain
+                result = self.qa_chain(query)
+                response = self._parse_recommendation_response(result, available_players)
+            except Exception as e:
+                logger.error(f"Error getting recommendations from LangChain: {e}")
+                response = self._rule_based_recommendations(available_players, user_team, draft_context)
         else:
             response = self._rule_based_recommendations(available_players, user_team, draft_context)
         
@@ -135,8 +227,31 @@ class RAGService:
         
         return response
 
+    def _update_vector_store(self, players: List[Player]):
+        """Update vector store with current player data"""
+        if not players:
+            return
+            
+        # Convert players to documents
+        documents = []
+        for player in players:
+            content = (
+                f"{player.name} ({player.position}, {player.team})\n"
+                f"Rank: {player.rank}, Projected Points: {player.projected_points}\n"
+                f"Value Score: {player.value_score}, ADP: {player.adp}\n"
+                f"Status: {player.injury_status or 'Healthy'}"
+            )
+            documents.append(Document(
+                page_content=content,
+                metadata=player.dict()
+            ))
+        
+        # Update vector store
+        self.vectorstore = FAISS.from_documents(documents, self.embeddings)
+        logger.info(f"Updated vector store with {len(documents)} player documents")
+    
     def chat(self, request: ChatRequest) -> ChatResponse:
-        """Get chat response with caching"""
+        """Get chat response using LangChain conversation chain or fallback"""
         
         # Check cache first
         cache_key = self._get_chat_cache_key(request)
@@ -147,24 +262,33 @@ class RAGService:
             cache_entry = self.chat_cache[cache_key]
             if self._is_cache_valid(cache_entry):
                 logger.info("✅ Chat cache hit! Returning cached response")
-                cached_response = cache_entry[1]
-                logger.info(f"🔍 Processing cached response: '{cached_response.response[:100]}'")
-                # Process cached response to ensure consistent formatting
-                if hasattr(cached_response, 'response'):
-                    original_cached_response = cached_response.response
-                    cached_response.response = self._process_chat_response(cached_response.response)
-                    logger.info(f"🔍 Cached response processed: '{cached_response.response[:100]}'")
-                return cached_response
+                return cache_entry[1]
             else:
-                # Remove expired cache entry
                 logger.info("⏰ Chat cache entry expired, removing...")
                 del self.chat_cache[cache_key]
         else:
             logger.info("❌ Chat cache miss - generating new response")
         
-        # Generate response based on LLM type
-        if self.llm_type == "groq":
-            response = self._groq_chat(request)
+        # Generate response using LangChain if available
+        if self.chat_chain:
+            try:
+                # Format the chat context
+                context = f"Draft Context: {request.draft_context}\n"
+                
+                # Get response from conversation chain
+                result = self.chat_chain({
+                    "question": request.message,
+                    "chat_history": self.memory.chat_memory.messages,
+                    "context": context
+                })
+                
+                response = ChatResponse(
+                    response=result["answer"],
+                    confidence=0.9 if result.get("source_documents") else 0.7
+                )
+            except Exception as e:
+                logger.error(f"Error getting chat response from LangChain: {e}")
+                response = self._rule_based_chat(request)
         else:
             response = self._rule_based_chat(request)
         
@@ -404,23 +528,38 @@ class RAGService:
         )
         return prompt
 
-    def _parse_llm_recommendations(self, response, available_players):
+    def _parse_recommendation_response(self, result, available_players):
+        """Parse LangChain recommendation response"""
         try:
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
+            # Extract JSON from response
+            response_text = result.get('result', '') or result.get('answer', '')
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}') + 1
+            
             if json_start != -1 and json_end != -1:
-                json_str = response[json_start:json_end]
+                json_str = response_text[json_start:json_end]
                 data = json.loads(json_str)
             else:
-                data = json.loads(response)
-            primary_player = self._find_player_by_name(data["primary_recommendation"]["player_name"], available_players)
+                data = json.loads(response_text)
+            
+            # Find primary recommendation player
+            primary_player = self._find_player_by_name(
+                data["primary_recommendation"]["player_name"], 
+                available_players
+            )
+            
             if not primary_player:
+                logger.warning("Primary recommended player not found in available players")
                 return self._rule_based_recommendations(available_players, {}, {})
+                
+            # Create primary recommendation
             primary_rec = Recommendation(
                 player=primary_player,
                 reasoning=data["primary_recommendation"]["reasoning"],
                 confidence_score=data["primary_recommendation"]["confidence_score"]
             )
+            
+            # Process alternative recommendations
             alternatives = []
             for alt in data.get("alternatives", []):
                 alt_player = self._find_player_by_name(alt["player_name"], available_players)
@@ -430,14 +569,20 @@ class RAGService:
                         reasoning=alt["reasoning"],
                         confidence_score=alt["confidence_score"]
                     ))
+                    
+            # Create response
             return RecommendationResponse(
                 primary_recommendation=primary_rec,
                 alternative_recommendations=alternatives,
                 strategy_notes=data.get("strategy_notes", ""),
-                next_picks_suggestion=["Consider positional balance", "Look for value"]
+                next_picks_suggestion=[
+                    "Consider positional balance",
+                    "Look for value picks",
+                    "Monitor injury status"
+                ]
             )
         except Exception as e:
-            logger.error(f"Error parsing LLM recommendations: {e}")
+            logger.error(f"Error parsing LangChain recommendations: {e}")
             return self._rule_based_recommendations(available_players, {}, {})
 
     def _process_chat_response(self, text):
